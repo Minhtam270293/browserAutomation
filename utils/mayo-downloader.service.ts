@@ -21,11 +21,14 @@ export class MayoDownloaderService implements IFileDownloader {
     console.log("MediaShuttleService injected:", this.mediaShuttleService);
   }
 
-  async download(): Promise<FileData[]> {
+  async download(lastSyncTime): Promise<FileData[]> {
     this.logger.log(`[MAYO] Downloading files via Media Shuttle`);
     try {
       const config = this.getMediaShuttleConfig();
-      await this.mediaShuttleService.downloadFromMediaShuttle(config);
+      await this.mediaShuttleService.downloadFromMediaShuttle(
+        config,
+        lastSyncTime
+      );
       // For now, return an empty array
       return [];
     } catch (error) {

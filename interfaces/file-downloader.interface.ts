@@ -14,8 +14,6 @@ export interface IFileDownloader {
    * @param lastSyncTime - Last successful sync timestamp
    * @returns Array of files with their data
    */
-  // download(lastSyncTime: Date): Promise<FileData[]>;
 
-  // test: delete later
   download(lastSyncTime: Date): Promise<FileData[]>;
 }

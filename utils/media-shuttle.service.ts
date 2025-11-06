@@ -75,7 +75,10 @@ export class MediaShuttleService {
     }
   }
 
-  async downloadFromMediaShuttle(config: MediaShuttleConfig): Promise<void> {
+  async downloadFromMediaShuttle(
+    config: MediaShuttleConfig,
+    lastSyncTime: Date
+  ): Promise<void> {
     this.logger.log("Starting Media Shuttle download process...");
     let page: Page | null = null;
 
@@ -85,7 +88,7 @@ export class MediaShuttleService {
       await this.login(page, config);
 
       // TODO: perform Download
-      await this.performDownload(page, config);
+      await this.performDownload(page, config, lastSyncTime);
 
       this.logger.log("Media Shuttle download completed successfully");
 
@@ -221,23 +224,25 @@ export class MediaShuttleService {
 
   private async performDownload(
     page: Page,
-    config: MediaShuttleConfig
+    config: MediaShuttleConfig,
+    lastSyncTime: Date
   ): Promise<void> {
     this.logger.log("Starting file download process...");
 
     const logFilterConditions = {
       titlePrefix: "Received",
-      lastSync: new Date("2025-11-05T23:59:59"),
+      lastSync: lastSyncTime,
     };
 
     const filesFilterConditions = {
       nameSuffix: "OptimAI.xlsx",
     };
 
-    let foundMatchedLog = false;
-    let matchedLog = null;
+    const visitedItems = new Set<string>();
     let scrollAttempts = 0;
     const maxScrollAttempts = 50;
+    let shouldStopSearching = false;
+    let downloadCount = 0;
 
     try {
       // Click transferWithoutAppButton
@@ -247,230 +252,160 @@ export class MediaShuttleService {
         await transferWithoutAppButton.click();
       }
 
-      // Click myTransfersButton
       const myTransfersButton = page.locator("#portal-activity-button");
       if (await myTransfersButton.isVisible().catch(() => false)) {
         this.logger.log('Found "My Transfers Button" button, clicking it...');
         await myTransfersButton.click();
+        await page.waitForTimeout(500);
       }
 
-      // Collect activity items
-      const activityDialog = page.locator("#activity");
-      if (await activityDialog.isVisible().catch(() => false)) {
-        this.logger.log(
-          'Found "Activity dialog", process to filter activities...'
-        );
+      while (!shouldStopSearching && scrollAttempts < maxScrollAttempts) {
+        const activityDialog = page.locator("#activity");
+
+        if (!(await activityDialog.isVisible().catch(() => false))) {
+          this.logger.warn("Activity dialog not found, retrying...");
+          continue;
+        }
 
         const activityItemsContainer =
           activityDialog.locator(".activity-items");
+        const activityItemsLocator = activityDialog.locator(".activity-item");
+        const activityItemsCount = await activityItemsLocator.count();
 
-        while (!foundMatchedLog && scrollAttempts < maxScrollAttempts) {
-          const activityItemsLocator = activityDialog.locator(".activity-item");
-          const activityItemsCount = await activityItemsLocator.count();
+        this.logger.log(
+          `Scroll attempt ${
+            scrollAttempts + 1
+          }: Found ${activityItemsCount} activity items (${
+            visitedItems.size
+          } visited, ${downloadCount} downloaded)`
+        );
 
-          this.logger.log(
-            `Scroll attempt ${
-              scrollAttempts + 1
-            }: Found ${activityItemsCount} activity items`
-          );
+        if (activityItemsCount === 0) {
+          this.logger.log("No activity items found");
+          break;
+        }
 
-          if (activityItemsCount === 0) {
-            this.logger.log("No activity items found");
-            break;
+        const activityItems = await activityItemsLocator.all();
+        for (const item of activityItems) {
+          const fileName = await item
+            .locator(".activity-item__subtext")
+            .textContent();
+
+          const title = await item
+            .locator(".activity-item__info b")
+            .textContent();
+
+          const fileNameTrimmed = fileName?.trim() || "";
+          const titleTrimmed = title?.trim() || "";
+
+          const itemId = `${titleTrimmed}::${fileNameTrimmed}`;
+
+          if (visitedItems.has(itemId)) {
+            continue;
           }
 
-          const activityItems = await activityItemsLocator.all();
-          for (const item of activityItems) {
-            const fileName = await item
-              .locator(".activity-item__subtext")
-              .textContent();
+          const matchesTitle = logFilterConditions.titlePrefix
+            ? titleTrimmed.startsWith(logFilterConditions.titlePrefix)
+            : true;
 
-            const title = await item
-              .locator(".activity-item__info b")
-              .textContent();
+          if (matchesTitle) {
+            this.logger.log(
+              `✓ Found matching unvisited item - Title: "${titleTrimmed}", File: "${fileNameTrimmed}"`
+            );
 
-            const fileNameTrimmed = fileName?.trim() || "";
-            const titleTrimmed = title?.trim() || "";
+            visitedItems.add(itemId);
 
-            const matchesTitle = logFilterConditions.titlePrefix
-              ? titleTrimmed.startsWith(logFilterConditions.titlePrefix)
-              : true;
-
-            if (matchesTitle) {
+            if (await item.isVisible().catch(() => false)) {
               this.logger.log(
-                `✓ Found matching item - Title: "${titleTrimmed}"`
+                `Clicking on activity item: ${fileNameTrimmed}...`
               );
-              matchedLog = {
-                fileName: fileNameTrimmed,
-                element: item,
-              };
-              foundMatchedLog = true;
+              await item.click();
+              await page.waitForTimeout(1000);
+
+              const activitySubtitle = page
+                .locator(".activity-description__subtitle")
+                .first();
+
+              if (!(await activitySubtitle.isVisible().catch(() => false))) {
+                this.logger.warn(
+                  "Activity subtitle not found, skip this item!"
+                );
+                continue;
+              }
+
+              const subtitleText = await activitySubtitle.textContent();
+              const subtitleTrimmed = subtitleText?.trim() || "";
+              const activityTimestamp = new Date(subtitleTrimmed);
+
+              if (isNaN(activityTimestamp.getTime())) {
+                this.logger.warn(
+                  `Invalid timestamp: "${subtitleTrimmed}", skipping...`
+                );
+                continue; // Skip this item
+              }
+
+              if (logFilterConditions.lastSync >= activityTimestamp) {
+                this.logger.warn(
+                  `Found old item (${activityTimestamp.toLocaleString()}), stopping search...`
+                );
+                shouldStopSearching = true;
+                break;
+              }
+
+              this.logger.log(
+                `✓ Date check passed (${activityTimestamp.toLocaleString()}), proceeding to download...`
+              );
+
+              await this.downloadActivityFiles(
+                page,
+                fileNameTrimmed,
+                filesFilterConditions
+              );
+              downloadCount++;
+
+              scrollAttempts = 0;
+
+              this.logger.log(
+                "Download complete, reopening activity dialog for next item..."
+              );
+
+              const myTransfersButton = page.locator("#portal-activity-button");
+
+              if (await myTransfersButton.isVisible().catch(() => false)) {
+                await myTransfersButton.click();
+                await page.waitForTimeout(500);
+                this.logger.log(
+                  "Activity dialog reopened, continuing search..."
+                );
+              }
               break;
             }
           }
-
-          if (!foundMatchedLog) {
-            this.logger.log("No match found, scrolling down...");
-
-            await activityItemsContainer.evaluate((container) => {
-              container.scrollTop = container.scrollTop + 300; // Scroll down 300px
-            });
-
-            await page.waitForTimeout(800);
-            scrollAttempts++;
-          }
         }
 
-        if (!matchedLog) {
-          this.logger.warn("No matching activity item found after scrolling");
-          return;
+        if (shouldStopSearching) {
+          this.logger.log("Stopping search - found item older than lastSync");
+          break; // Exit while loop
         }
 
-        this.logger.log(`Processing matched item: ${matchedLog.fileName}`);
-
-        if (await matchedLog.element.isVisible().catch(() => false)) {
-          this.logger.log(
-            `Clicking on activity item: ${matchedLog.fileName}...`
-          );
-          await matchedLog.element.click();
-        }
-
-        await page.waitForTimeout(1000);
-
-        const activitySubtitle = page
-          .locator(".activity-description__subtitle")
-          .first();
-
-        if (!(await activitySubtitle.isVisible().catch(() => false))) {
-          this.logger.warn("Activity subtitle not found!");
-          return;
-        }
-
-        const subtitleText = await activitySubtitle.textContent();
-        const subtitleTrimmed = subtitleText?.trim() || "";
-
-        const activityTimestamp = new Date(subtitleTrimmed);
-
-        if (logFilterConditions.lastSync >= activityTimestamp) {
-          this.logger.warn(
-            `Skipping: Activity date (${activityTimestamp.toLocaleString()})`
-          );
-          return;
-        }
-        this.logger.log(`Timestamp check passed, proceeding...`);
-
-        const dropDownMenuButton = page.locator(
-          ".activity-icon--medium.pa-details__menu-icon.fas.fa-ellipsis-v"
+        // If we didn't find any matches in this scroll, scroll down
+        this.logger.log(
+          "No new matches found in this batch, scrolling down..."
         );
-        if (await dropDownMenuButton.isVisible().catch(() => false)) {
-          this.logger.log("Found Dropdown menu button, clicking it...");
-          await dropDownMenuButton.click();
-        }
+        await activityItemsContainer.evaluate((container) => {
+          container.scrollTop = container.scrollTop + 300;
+        });
 
-        const dropdownDownloadOption = page
-          .locator(".activity-dropdown__text")
-          .filter({ hasText: "Download" });
+        await page.waitForTimeout(800);
+        scrollAttempts++;
+      }
 
-        if (await dropdownDownloadOption.isVisible().catch(() => false)) {
-          this.logger.log("Found Download option, clicking it...");
-          await dropdownDownloadOption.click();
+      this.logger.log(
+        `Download process complete: ${downloadCount} items downloaded, ${visitedItems.size} items checked`
+      );
 
-          this.logger.log("Waiting for navigation to download page...");
-          await page.waitForURL("**/download.jsp**", { timeout: 10000 });
-          this.logger.log(`Navigated to: ${page.url()}`);
-
-          const transferWithoutAppButton = page.locator("#mst-no-software-btn");
-          if (await transferWithoutAppButton.isVisible().catch(() => false)) {
-            this.logger.log(
-              'Found "Transfer Without App" button, clicking it...'
-            );
-            await transferWithoutAppButton.click();
-          }
-
-          // Collect files to download
-          this.logger.log("Collecting files in download page...");
-          const fileItemsLocator = page.locator(".jstree-anchor");
-          const fileItemsCount = await fileItemsLocator.count();
-
-          this.logger.log(`Found ${fileItemsCount} total files`);
-          if (fileItemsCount === 0) return;
-
-          const filteredFiles = [];
-          const fileItems = await fileItemsLocator.all();
-
-          for (const item of fileItems) {
-            const fileNameText = await item.textContent();
-            const fileNameTrimmed = fileNameText?.trim() || "";
-            const matchesSuffix = filesFilterConditions.nameSuffix
-              ? fileNameTrimmed.endsWith(filesFilterConditions.nameSuffix)
-              : true;
-
-            if (matchesSuffix) {
-              filteredFiles.push({
-                fileName: fileNameTrimmed,
-                element: item,
-              });
-            }
-          }
-
-          const filteredFileCount = filteredFiles.length;
-          this.logger.log(
-            `Filtered to ${filteredFileCount} files matching conditions`
-          );
-          if (filteredFileCount === 0) return;
-
-          for (const file of filteredFiles) {
-            this.logger.log(`Selecting file: ${file.fileName}`);
-            await file.element.click({
-              modifiers: ["Control"],
-            });
-            await page.waitForTimeout(300); // Small delay between clicks
-          }
-
-          const downloadPromise = page.waitForEvent("download");
-
-          const finalDownloadButton = page.locator(
-            'span[data-lingua="downloadButton"]'
-          );
-          if (await finalDownloadButton.isVisible().catch(() => false)) {
-            this.logger.log("Found Final Download button, clicking it...");
-            await finalDownloadButton.click();
-
-            this.logger.log("Waiting for download to start...");
-            const download = await downloadPromise;
-
-            const suggestedFilename = download.suggestedFilename();
-            this.logger.log(`Download started: ${suggestedFilename}`);
-
-            const downloadPath = path.join(
-              "D:\\MayoDownload",
-              suggestedFilename
-            );
-
-            await download.saveAs(downloadPath);
-            this.logger.log(`File saved to: ${downloadPath}`);
-
-            // Check zip file and extract
-            if (suggestedFilename.endsWith(".zip")) {
-              this.logger.log("Detected zip file, extracting...");
-
-              const extractDir = path.join(
-                "D:\\MayoDownload",
-                path.basename(suggestedFilename, ".zip")
-              );
-
-              if (!fs.existsSync(extractDir)) {
-                fs.mkdirSync(extractDir, { recursive: true });
-              }
-
-              await this.extractZipFile(downloadPath, extractDir);
-              this.logger.log(`Files extracted to: ${extractDir}`);
-
-              fs.unlinkSync(downloadPath);
-              this.logger.log("Zip file deleted after extraction");
-            }
-          }
-        }
+      if (downloadCount === 0) {
+        this.logger.warn("No items were downloaded");
       }
     } catch (error) {
       this.logger.error("Download process failed:", error);
@@ -479,6 +414,158 @@ export class MediaShuttleService {
           error instanceof Error ? error.message : "Unknown error"
         }`
       );
+    }
+  }
+
+  private async downloadActivityFiles(
+    page: Page,
+    activityFileName: string,
+    filesFilterConditions: any
+  ): Promise<void> {
+    try {
+      // Click dropdown menu
+      const dropDownMenuButton = page.locator(
+        ".activity-icon--medium.pa-details__menu-icon.fas.fa-ellipsis-v"
+      );
+      if (await dropDownMenuButton.isVisible().catch(() => false)) {
+        this.logger.log("Found Dropdown menu button, clicking it...");
+        await dropDownMenuButton.click();
+      }
+
+      const dropdownDownloadOption = page
+        .locator(".activity-dropdown__text")
+        .filter({ hasText: "Download" });
+
+      if (!(await dropdownDownloadOption.isVisible().catch(() => false))) {
+        this.logger.warn("Download option not found");
+        return;
+      }
+
+      this.logger.log("Found Download option, clicking it...");
+      await dropdownDownloadOption.click();
+
+      this.logger.log("Waiting for navigation to download page...");
+      await page.waitForURL("**/download.jsp**", { timeout: 10000 });
+      this.logger.log(`Navigated to: ${page.url()}`);
+
+      await page.waitForLoadState("domcontentloaded");
+      await page.waitForTimeout(1000);
+
+      const transferWithoutAppButton = page.locator("#mst-no-software-btn");
+      if (await transferWithoutAppButton.isVisible().catch(() => false)) {
+        this.logger.log('Found "Transfer Without App" button, clicking it...');
+        await transferWithoutAppButton.click();
+      }
+
+      // Wait for the file tree to load
+      this.logger.log("Waiting for file list to load...");
+      await page
+        .waitForSelector(".jstree-anchor", {
+          state: "visible",
+          timeout: 10000,
+        })
+        .catch(() => {
+          this.logger.warn("File list did not load within timeout");
+        });
+
+      // Give a bit more time for all files to render
+      await page.waitForTimeout(1000);
+
+      // Collect files to download
+      this.logger.log("Collecting files in download page...");
+      const fileItemsLocator = page.locator(".jstree-anchor");
+      const fileItemsCount = await fileItemsLocator.count();
+
+      this.logger.log(`Found ${fileItemsCount} total files`);
+      if (fileItemsCount === 0) return;
+
+      const filteredFiles = [];
+      const fileItems = await fileItemsLocator.all();
+
+      for (const item of fileItems) {
+        const fileNameText = await item.textContent();
+        const fileNameTrimmed = fileNameText?.trim() || "";
+        const matchesSuffix = filesFilterConditions.nameSuffix
+          ? fileNameTrimmed.endsWith(filesFilterConditions.nameSuffix)
+          : true;
+
+        if (matchesSuffix) {
+          filteredFiles.push({
+            fileName: fileNameTrimmed,
+            element: item,
+          });
+        }
+      }
+
+      const filteredFileCount = filteredFiles.length;
+      this.logger.log(
+        `Filtered to ${filteredFileCount} files matching conditions`
+      );
+      if (filteredFileCount === 0) return;
+
+      for (const file of filteredFiles) {
+        this.logger.log(`Selecting file: ${file.fileName}`);
+        await file.element.click({
+          modifiers: ["Control"],
+        });
+        await page.waitForTimeout(300);
+      }
+
+      const downloadPromise = page.waitForEvent("download");
+
+      const finalDownloadButton = page.locator(
+        'span[data-lingua="downloadButton"]'
+      );
+      if (!(await finalDownloadButton.isVisible().catch(() => false))) {
+        this.logger.warn("Final download button not found");
+        return;
+      }
+
+      this.logger.log("Found Final Download button, clicking it...");
+      await finalDownloadButton.click();
+
+      this.logger.log("Waiting for download to start...");
+      const download = await downloadPromise;
+
+      const suggestedFilename = download.suggestedFilename();
+      this.logger.log(`Download started: ${suggestedFilename}`);
+
+      const downloadPath = path.join("D:\\MayoDownload", suggestedFilename);
+
+      await download.saveAs(downloadPath);
+      this.logger.log(`File saved to: ${downloadPath}`);
+
+      // Check zip file and extract
+      if (suggestedFilename.endsWith(".zip")) {
+        this.logger.log("Detected zip file, extracting...");
+
+        const extractDir = path.join(
+          "D:\\MayoDownload",
+          path.basename(suggestedFilename, ".zip")
+        );
+
+        if (!fs.existsSync(extractDir)) {
+          fs.mkdirSync(extractDir, { recursive: true });
+        }
+
+        await this.extractZipFile(downloadPath, extractDir);
+        this.logger.log(`Files extracted to: ${extractDir}`);
+
+        fs.unlinkSync(downloadPath);
+        this.logger.log("Zip file deleted after extraction");
+      }
+
+      this.logger.log(
+        `Successfully downloaded files from: ${activityFileName}`
+      );
+
+      await page.waitForTimeout(2000);
+    } catch (error) {
+      this.logger.error(
+        `Failed to download files from: ${activityFileName}`,
+        error
+      );
+      throw error;
     }
   }
 

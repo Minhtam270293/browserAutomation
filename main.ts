@@ -12,7 +12,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const config = configService.get("mediaShuttle");
 
-  await mayoDownloaderService.download();
+  await mayoDownloaderService.download(new Date("2025-11-01T10:00:00"));
 
   // Optionally start the HTTP server if you want
   // await app.listen(3000);
