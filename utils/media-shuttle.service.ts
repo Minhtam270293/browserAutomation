@@ -1,6 +1,7 @@
 import { Injectable, Logger, BadRequestException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { chromium, Browser, Page, BrowserContext } from "playwright";
+import { FileData } from "../interfaces/file-downloader.interface";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -78,9 +79,11 @@ export class MediaShuttleService {
   async downloadFromMediaShuttle(
     config: MediaShuttleConfig,
     lastSyncTime: Date
-  ): Promise<void> {
+  ): Promise<FileData[]> {
     this.logger.log("Starting Media Shuttle download process...");
     let page: Page | null = null;
+
+    let finalFileData: FileData[] = [];
 
     try {
       page = await this.initializeBrowser(config);
@@ -88,11 +91,11 @@ export class MediaShuttleService {
       await this.login(page, config);
 
       // TODO: perform Download
-      await this.performDownload(page, config, lastSyncTime);
+      finalFileData = await this.performDownload(page, config, lastSyncTime);
 
       this.logger.log("Media Shuttle download completed successfully");
 
-      return;
+      return finalFileData;
     } catch (error) {
       this.logger.error("Download process failed:", error);
 
@@ -226,7 +229,9 @@ export class MediaShuttleService {
     page: Page,
     config: MediaShuttleConfig,
     lastSyncTime: Date
-  ): Promise<void> {
+  ): Promise<FileData[]> {
+    let finalFileData: FileData[] = [];
+
     this.logger.log("Starting file download process...");
 
     const logFilterConditions = {
@@ -356,11 +361,21 @@ export class MediaShuttleService {
                 `✓ Date check passed (${activityTimestamp.toLocaleString()}), proceeding to download...`
               );
 
-              await this.downloadActivityFiles(
+              const downloadedFiles = await this.downloadActivityFiles(
                 page,
                 fileNameTrimmed,
-                filesFilterConditions
+                filesFilterConditions,
+                activityTimestamp
               );
+
+              // Push downloaded files to final collection
+              if (downloadedFiles && downloadedFiles.length > 0) {
+                finalFileData.push(...downloadedFiles);
+                this.logger.log(
+                  `Added ${downloadedFiles.length} files to collection`
+                );
+              }
+
               downloadCount++;
 
               scrollAttempts = 0;
@@ -404,9 +419,13 @@ export class MediaShuttleService {
         `Download process complete: ${downloadCount} items downloaded, ${visitedItems.size} items checked`
       );
 
+      this.logger.log(`Total files collected: ${finalFileData.length}`);
+
       if (downloadCount === 0) {
         this.logger.warn("No items were downloaded");
       }
+
+      return finalFileData;
     } catch (error) {
       this.logger.error("Download process failed:", error);
       throw new Error(
@@ -420,9 +439,12 @@ export class MediaShuttleService {
   private async downloadActivityFiles(
     page: Page,
     activityFileName: string,
-    filesFilterConditions: any
-  ): Promise<void> {
+    filesFilterConditions: any,
+    activityDate: Date
+  ): Promise<FileData[]> {
     try {
+      let fileData: FileData[] = [];
+
       // Click dropdown menu
       const dropDownMenuButton = page.locator(
         ".activity-icon--medium.pa-details__menu-icon.fas.fa-ellipsis-v"
@@ -511,7 +533,7 @@ export class MediaShuttleService {
         await page.waitForTimeout(300);
       }
 
-      const downloadPromise = page.waitForEvent("download");
+      const downloadPromise = page.waitForEvent("download", { timeout: 60000 });
 
       const finalDownloadButton = page.locator(
         'span[data-lingua="downloadButton"]'
@@ -523,6 +545,9 @@ export class MediaShuttleService {
 
       this.logger.log("Found Final Download button, clicking it...");
       await finalDownloadButton.click();
+
+      this.logger.log("Waiting for server to prepare download...");
+      await page.waitForTimeout(2000);
 
       this.logger.log("Waiting for download to start...");
       const download = await downloadPromise;
@@ -553,6 +578,8 @@ export class MediaShuttleService {
 
         fs.unlinkSync(downloadPath);
         this.logger.log("Zip file deleted after extraction");
+
+        fileData = await this.readDownloadedFiles(extractDir, activityDate);
       }
 
       this.logger.log(
@@ -560,6 +587,8 @@ export class MediaShuttleService {
       );
 
       await page.waitForTimeout(2000);
+
+      return fileData;
     } catch (error) {
       this.logger.error(
         `Failed to download files from: ${activityFileName}`,
@@ -567,6 +596,36 @@ export class MediaShuttleService {
       );
       throw error;
     }
+  }
+
+  private async readDownloadedFiles(
+    extractDir: string,
+    activityDate: Date
+  ): Promise<FileData[]> {
+    const files: FileData[] = [];
+
+    const fileNames = fs.readdirSync(extractDir);
+
+    for (const fileName of fileNames) {
+      const filePath = path.join(extractDir, fileName);
+      const stats = fs.statSync(filePath);
+
+      if (stats.isFile()) {
+        const buffer = fs.readFileSync(filePath);
+
+        files.push({
+          fileName,
+          filePath,
+          type: "INPUT",
+          status: null,
+          statusHistory: null,
+          data: buffer,
+          updatedAt: activityDate,
+        });
+      }
+    }
+
+    return files;
   }
 
   private async waitForUploadCompletion(page: Page): Promise<void> {

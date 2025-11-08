@@ -46,6 +46,9 @@ playwright/.cache/
 downloads/
 D:\MayoDownload/
 
+# Reference folders
+TinReference/
+
 # Temporary files
 *.tmp
 *.temp

@@ -24,13 +24,15 @@ export class MayoDownloaderService implements IFileDownloader {
   async download(lastSyncTime): Promise<FileData[]> {
     this.logger.log(`[MAYO] Downloading files via Media Shuttle`);
     try {
+      let finalFileData: FileData[] = [];
+
       const config = this.getMediaShuttleConfig();
-      await this.mediaShuttleService.downloadFromMediaShuttle(
+      finalFileData = await this.mediaShuttleService.downloadFromMediaShuttle(
         config,
         lastSyncTime
       );
       // For now, return an empty array
-      return [];
+      return finalFileData;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";

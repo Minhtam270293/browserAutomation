@@ -12,7 +12,20 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
   const config = configService.get("mediaShuttle");
 
-  await mayoDownloaderService.download(new Date("2025-11-01T10:00:00"));
+  const fileData = await mayoDownloaderService.download(
+    new Date("2025-11-01T10:00:00")
+  );
+
+  if (fileData.length > 0) {
+    const demoData = fileData[6];
+    console.log("\n✅ demoData File Check:");
+    console.log(`  Name: ${demoData.fileName}`);
+    console.log(`  Path: ${demoData.filePath}`);
+    console.log(`  Size: ${(demoData.data.length / 1024).toFixed(2)} KB`);
+    console.log(`  Buffer Length: ${demoData.data.length} bytes`);
+    console.log(`  Date: ${demoData.updatedAt.toLocaleString()}`);
+    console.log(`  Has Buffer Data: ${demoData.data instanceof Buffer}`);
+  }
 
   // Optionally start the HTTP server if you want
   // await app.listen(3000);
