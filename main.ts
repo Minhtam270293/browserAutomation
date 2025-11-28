@@ -13,11 +13,11 @@ async function bootstrap() {
   const config = configService.get("mediaShuttle");
 
   const fileData = await mayoDownloaderService.download(
-    new Date("2025-11-01T10:00:00")
+    new Date("2025-11-28T17:00:00")
   );
 
   if (fileData.length > 0) {
-    const demoData = fileData[6];
+    const demoData = fileData[0];
     console.log("\n✅ demoData File Check:");
     console.log(`  Name: ${demoData.fileName}`);
     console.log(`  Path: ${demoData.filePath}`);

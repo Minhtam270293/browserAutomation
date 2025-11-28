@@ -1,11 +1,9 @@
 import { Injectable, Logger, BadRequestException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { chromium, Browser, Page, BrowserContext, Locator } from "playwright";
+import { chromium, Browser, Page, BrowserContext } from "playwright";
 import { FileData } from "../interfaces/file-downloader.interface";
-import { promises as fsPromises } from "fs";
+import * as fs from "fs";
 import * as path from "path";
-import * as os from "os";
-import AdmZip from "adm-zip";
 
 export interface MediaShuttleConfig {
   url: string;
@@ -31,16 +29,6 @@ export class MediaShuttleService {
 
   constructor(private configService: ConfigService) {}
 
-  private async getDownloadDirectory(): Promise<string> {
-    const downloadDir = path.join(os.tmpdir(), "mayo-downloads");
-    try {
-      await fsPromises.access(downloadDir);
-    } catch {
-      await fsPromises.mkdir(downloadDir, { recursive: true });
-    }
-    return downloadDir;
-  }
-
   async uploadToMediaShuttle(
     filePaths: string[],
     config: MediaShuttleConfig
@@ -48,14 +36,10 @@ export class MediaShuttleService {
     let page: Page | null = null;
 
     try {
-      for (const filePath of filePaths) {
-        try {
-          await fsPromises.access(filePath);
-        } catch {
-          throw new BadRequestException(
-            `Files not found: ${filePaths.join(", ")}`
-          );
-        }
+      if (!filePaths.every((filePath) => fs.existsSync(filePath))) {
+        throw new BadRequestException(
+          `Files not found: ${filePaths.join(", ")}`
+        );
       }
 
       this.logger.log(
@@ -131,7 +115,7 @@ export class MediaShuttleService {
     this.browser = await chromium.launch({
       headless: false,
       // TODO: delete slowMo later
-      slowMo: 200, // Delay each action by 500ms (adjust as needed)
+      slowMo: 500, // Delay each action by 500ms (adjust as needed)
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
@@ -246,21 +230,20 @@ export class MediaShuttleService {
     config: MediaShuttleConfig,
     lastSyncTime: Date
   ): Promise<FileData[]> {
-    const finalFileData: FileData[] = [];
+    let finalFileData: FileData[] = [];
 
     this.logger.log("Starting file download process...");
 
     const logFilterConditions = {
-      titlePrefix: "Downloaded",
+      titlePrefix: "Received",
       lastSync: lastSyncTime,
     };
 
-    const filesFilterConditions: { nameSuffix?: string[] } = {
-      nameSuffix: ["CTG.xlsx"],
+    const filesFilterConditions = {
+      nameSuffix: "OptimAI.xlsx",
     };
 
     const visitedItems = new Set<string>();
-    const visitedFiles = new Set<string>();
     let scrollAttempts = 0;
     const maxScrollAttempts = 50;
     let shouldStopSearching = false;
@@ -363,7 +346,7 @@ export class MediaShuttleService {
                 this.logger.warn(
                   `Invalid timestamp: "${subtitleTrimmed}", skipping...`
                 );
-                continue;
+                continue; // Skip this item
               }
 
               if (logFilterConditions.lastSync >= activityTimestamp) {
@@ -381,19 +364,19 @@ export class MediaShuttleService {
               const downloadedFiles = await this.downloadActivityFiles(
                 page,
                 fileNameTrimmed,
-                filesFilterConditions as { nameSuffix?: string[] },
-                activityTimestamp,
-                visitedFiles
+                filesFilterConditions,
+                activityTimestamp
               );
 
               // Push downloaded files to final collection
               if (downloadedFiles && downloadedFiles.length > 0) {
                 finalFileData.push(...downloadedFiles);
-                downloadCount++;
                 this.logger.log(
-                  `Added ${downloadedFiles.length} files to collection (total downloaded: ${downloadCount})`
+                  `Added ${downloadedFiles.length} files to collection`
                 );
               }
+
+              downloadCount++;
 
               scrollAttempts = 0;
 
@@ -403,23 +386,13 @@ export class MediaShuttleService {
 
               const myTransfersButton = page.locator("#portal-activity-button");
 
-              // --- NEW
-              try {
-                await myTransfersButton.waitFor({
-                  state: "visible",
-                  timeout: 5000,
-                });
+              if (await myTransfersButton.isVisible().catch(() => false)) {
                 await myTransfersButton.click();
                 await page.waitForTimeout(500);
                 this.logger.log(
                   "Activity dialog reopened, continuing search..."
                 );
-              } catch {
-                this.logger.warn(
-                  "My Transfers button not found within timeout"
-                );
               }
-
               break;
             }
           }
@@ -466,9 +439,8 @@ export class MediaShuttleService {
   private async downloadActivityFiles(
     page: Page,
     activityFileName: string,
-    filesFilterConditions: { nameSuffix?: string[] },
-    activityDate: Date,
-    visitedFiles: Set<string>
+    filesFilterConditions: any,
+    activityDate: Date
   ): Promise<FileData[]> {
     try {
       let fileData: FileData[] = [];
@@ -488,7 +460,7 @@ export class MediaShuttleService {
 
       if (!(await dropdownDownloadOption.isVisible().catch(() => false))) {
         this.logger.warn("Download option not found");
-        return [];
+        return;
       }
 
       this.logger.log("Found Download option, clicking it...");
@@ -527,24 +499,16 @@ export class MediaShuttleService {
       const fileItemsCount = await fileItemsLocator.count();
 
       this.logger.log(`Found ${fileItemsCount} total files`);
-      if (fileItemsCount === 0) return [];
+      if (fileItemsCount === 0) return;
 
-      const filteredFiles: { fileName: string; element: Locator }[] = [];
+      const filteredFiles = [];
       const fileItems = await fileItemsLocator.all();
 
       for (const item of fileItems) {
         const fileNameText = await item.textContent();
         const fileNameTrimmed = fileNameText?.trim() || "";
-
-        if (visitedFiles.has(fileNameTrimmed)) {
-          this.logger.log(`Skipping already visited file: ${fileNameTrimmed}`);
-          continue;
-        }
-
         const matchesSuffix = filesFilterConditions.nameSuffix
-          ? filesFilterConditions.nameSuffix.some((suffix) =>
-              fileNameTrimmed.endsWith(suffix)
-            )
+          ? fileNameTrimmed.endsWith(filesFilterConditions.nameSuffix)
           : true;
 
         if (matchesSuffix) {
@@ -552,7 +516,6 @@ export class MediaShuttleService {
             fileName: fileNameTrimmed,
             element: item,
           });
-          visitedFiles.add(fileNameTrimmed);
         }
       }
 
@@ -560,7 +523,7 @@ export class MediaShuttleService {
       this.logger.log(
         `Filtered to ${filteredFileCount} files matching conditions`
       );
-      if (filteredFileCount === 0) return [];
+      if (filteredFileCount === 0) return;
 
       for (const file of filteredFiles) {
         this.logger.log(`Selecting file: ${file.fileName}`);
@@ -577,7 +540,7 @@ export class MediaShuttleService {
       );
       if (!(await finalDownloadButton.isVisible().catch(() => false))) {
         this.logger.warn("Final download button not found");
-        return [];
+        return;
       }
 
       this.logger.log("Found Final Download button, clicking it...");
@@ -592,8 +555,7 @@ export class MediaShuttleService {
       const suggestedFilename = download.suggestedFilename();
       this.logger.log(`Download started: ${suggestedFilename}`);
 
-      const downloadDir = await this.getDownloadDirectory();
-      const downloadPath = path.join(downloadDir, suggestedFilename);
+      const downloadPath = path.join("D:\\MayoDownload", suggestedFilename);
 
       await download.saveAs(downloadPath);
       this.logger.log(`File saved to: ${downloadPath}`);
@@ -603,29 +565,21 @@ export class MediaShuttleService {
         this.logger.log("Detected zip file, extracting...");
 
         const extractDir = path.join(
-          downloadDir,
+          "D:\\MayoDownload",
           path.basename(suggestedFilename, ".zip")
         );
 
-        try {
-          await fsPromises.access(extractDir);
-        } catch {
-          await fsPromises.mkdir(extractDir, { recursive: true });
+        if (!fs.existsSync(extractDir)) {
+          fs.mkdirSync(extractDir, { recursive: true });
         }
 
         await this.extractZipFile(downloadPath, extractDir);
         this.logger.log(`Files extracted to: ${extractDir}`);
 
-        await fsPromises.unlink(downloadPath);
+        fs.unlinkSync(downloadPath);
         this.logger.log("Zip file deleted after extraction");
 
         fileData = await this.readDownloadedFiles(extractDir, activityDate);
-      } else {
-        this.logger.log("Detected single file, reading directly...");
-        fileData = await this.readDownloadedSingleFile(
-          downloadPath,
-          activityDate
-        );
       }
 
       this.logger.log(
@@ -644,54 +598,30 @@ export class MediaShuttleService {
     }
   }
 
-  private async readDownloadedSingleFile(
-    downloadPath: string,
-    activityDate: Date
-  ): Promise<FileData[]> {
-    const files: FileData[] = [];
-
-    const fileName = path.basename(downloadPath);
-    const buffer = await fsPromises.readFile(downloadPath);
-
-    files.push({
-      fileName,
-      filePath: downloadPath,
-      type: "INPUT",
-      status: undefined,
-      statusHistory: undefined,
-      data: buffer,
-      updatedAt: activityDate,
-    });
-
-    return files;
-  }
-
   private async readDownloadedFiles(
     extractDir: string,
     activityDate: Date
   ): Promise<FileData[]> {
     const files: FileData[] = [];
 
-    const fileNames = await fsPromises.readdir(extractDir);
+    const fileNames = fs.readdirSync(extractDir);
 
     for (const fileName of fileNames) {
       const filePath = path.join(extractDir, fileName);
-      const stats = await fsPromises.stat(filePath);
+      const stats = fs.statSync(filePath);
 
       if (stats.isFile()) {
-        const buffer = await fsPromises.readFile(filePath);
+        const buffer = fs.readFileSync(filePath);
 
-        const fileDataObject = {
+        files.push({
           fileName,
           filePath,
           type: "INPUT",
-          status: undefined,
-          statusHistory: undefined,
+          status: null,
+          statusHistory: null,
           data: buffer,
           updatedAt: activityDate,
-        };
-
-        files.push(fileDataObject);
+        });
       }
     }
 
@@ -763,17 +693,15 @@ export class MediaShuttleService {
 
   private async captureErrorScreenshot(page: Page): Promise<void> {
     try {
-      const screenshotDir = path.join(os.tmpdir(), "mayo-screenshots");
-      try {
-        await fsPromises.access(screenshotDir);
-      } catch {
-        await fsPromises.mkdir(screenshotDir, { recursive: true });
-      }
-
       const screenshotPath = path.join(
-        screenshotDir,
+        process.cwd(),
+        "logs",
         `media-shuttle-error-${Date.now()}.png`
       );
+
+      if (!fs.existsSync(path.dirname(screenshotPath))) {
+        fs.mkdirSync(path.dirname(screenshotPath), { recursive: true });
+      }
 
       await page.screenshot({ path: screenshotPath, fullPage: true });
       this.logger.log(`Error screenshot saved: ${screenshotPath}`);
@@ -817,32 +745,19 @@ export class MediaShuttleService {
     zipPath: string,
     extractTo: string
   ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      try {
-        const zip = new AdmZip(zipPath);
-        zip.extractAllToAsync(extractTo, true, false, (error) => {
-          if (error) {
-            this.logger.error("Failed to extract zip file:", error);
-            reject(
-              new Error(
-                `Extraction failed: ${error.message || "Unknown error"}`
-              )
-            );
-          } else {
-            this.logger.log(`Successfully extracted ${zipPath}`);
-            resolve();
-          }
-        });
-      } catch (error) {
-        this.logger.error("Failed to initialize zip extraction:", error);
-        reject(
-          new Error(
-            `Extraction failed: ${
-              error instanceof Error ? error.message : "Unknown error"
-            }`
-          )
-        );
-      }
-    });
+    const AdmZip = require("adm-zip");
+
+    try {
+      const zip = new AdmZip(zipPath);
+      zip.extractAllTo(extractTo, true);
+      this.logger.log(`Successfully extracted ${zipPath}`);
+    } catch (error) {
+      this.logger.error("Failed to extract zip file:", error);
+      throw new Error(
+        `Extraction failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
   }
 }
