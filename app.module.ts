@@ -2,7 +2,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import mediaShuttleConfig from "./media-shuttle.config";
 import { MediaShuttleService } from "./utils/media-shuttle.service";
-import { MayoDownloaderService } from "./utils/mayo-downloader.service";
+import { BrowserDownloaderService } from "./utils/browser-downloader.service";
 
 @Module({
   imports: [
@@ -12,7 +12,7 @@ import { MayoDownloaderService } from "./utils/mayo-downloader.service";
       load: [mediaShuttleConfig],
     }),
   ],
-  providers: [MediaShuttleService, MayoDownloaderService],
+  providers: [MediaShuttleService, BrowserDownloaderService],
   exports: [MediaShuttleService],
 })
 export class AppModule {}

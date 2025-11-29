@@ -42,9 +42,6 @@ test-results/
 playwright-report/
 playwright/.cache/
 
-# Downloads folder
-downloads/
-D:\MayoDownload/
 
 # Reference folders
 TinReference/

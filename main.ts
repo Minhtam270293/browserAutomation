@@ -1,18 +1,18 @@
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 import { MediaShuttleService } from "./utils/media-shuttle.service";
-import { MayoDownloaderService } from "./utils/mayo-downloader.service";
+import { BrowserDownloaderService } from "./utils/browser-downloader.service";
 import { ConfigService } from "@nestjs/config";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const mediaShuttleService = app.get(MediaShuttleService);
-  const mayoDownloaderService = app.get(MayoDownloaderService);
+  const browserDownloaderService = app.get(BrowserDownloaderService);
 
   const configService = app.get(ConfigService);
   const config = configService.get("mediaShuttle");
 
-  const fileData = await mayoDownloaderService.download(
+  const fileData = await browserDownloaderService.download(
     new Date("2025-11-28T17:00:00")
   );
 

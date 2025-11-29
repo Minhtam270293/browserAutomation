@@ -10,8 +10,8 @@ import {
 import { ConfigService } from "@nestjs/config";
 
 @Injectable()
-export class MayoDownloaderService implements IFileDownloader {
-  private readonly logger = new Logger(MayoDownloaderService.name);
+export class BrowserDownloaderService implements IFileDownloader {
+  private readonly logger = new Logger(BrowserDownloaderService.name);
 
   constructor(
     private readonly mediaShuttleService: MediaShuttleService,
@@ -22,7 +22,7 @@ export class MayoDownloaderService implements IFileDownloader {
   }
 
   async download(lastSyncTime): Promise<FileData[]> {
-    this.logger.log(`[MAYO] Downloading files via Media Shuttle`);
+    this.logger.log(`[Browser] Downloading files via Media Shuttle`);
     try {
       let finalFileData: FileData[] = [];
 
@@ -36,7 +36,7 @@ export class MayoDownloaderService implements IFileDownloader {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      this.logger.error(`[MAYO] Download failed: ${errorMessage}`);
+      this.logger.error(`[Browser] Download failed: ${errorMessage}`);
       throw error;
     }
   }

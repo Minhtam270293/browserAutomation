@@ -32,7 +32,7 @@ export class MediaShuttleService {
   constructor(private configService: ConfigService) {}
 
   private async getDownloadDirectory(): Promise<string> {
-    const downloadDir = path.join(os.tmpdir(), "mayo-downloads");
+    const downloadDir = path.join(os.tmpdir(), "browser-downloads");
     try {
       await fsPromises.access(downloadDir);
     } catch {
@@ -763,7 +763,7 @@ export class MediaShuttleService {
 
   private async captureErrorScreenshot(page: Page): Promise<void> {
     try {
-      const screenshotDir = path.join(os.tmpdir(), "mayo-screenshots");
+      const screenshotDir = path.join(os.tmpdir(), "browser-screenshots");
       try {
         await fsPromises.access(screenshotDir);
       } catch {
