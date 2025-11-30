@@ -27,12 +27,15 @@ An automated file downloader and uploader built with NestJS and Playwright that 
 ```
 ├── utils/
 │   ├── media-shuttle.service.ts      # Main automation service
-│   └── browser-downloader.service.ts  # Download orchestration
+│   ├── browser-downloader.service.ts  # Download orchestration
+│   └── S3-uploader.service.ts         # S3 upload service
 ├── interfaces/
-│   └── file-downloader.interface.ts   # TypeScript interfaces
+│   ├── file-downloader.interface.ts   # Download interfaces
+│   └── file-uploader.interface.ts     # Upload interfaces
 ├── main.ts                            # Application entry point
 ├── app.module.ts                      # NestJS module configuration
-└── media-shuttle.config.ts            # Configuration loader
+├── media-shuttle.config.ts            # Media Shuttle configuration
+└── s3.config.ts                       # AWS S3 configuration
 ```
 
 ## Installation
