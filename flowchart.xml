@@ -5,51 +5,51 @@
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="init-browser" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Initialize Browser&lt;br&gt;(Chromium)" vertex="1">
-          <mxGeometry height="60" width="150" x="350" y="150" as="geometry" />
+          <mxGeometry height="60" width="150" x="326" y="150" as="geometry" />
         </mxCell>
         <mxCell id="login" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Authentication" vertex="1">
-          <mxGeometry height="60" width="150" x="350" y="240" as="geometry" />
+          <mxGeometry height="60" width="150" x="326" y="240" as="geometry" />
         </mxCell>
         <mxCell id="navigate" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Navigate through&lt;br&gt;intermediate steps to&lt;br&gt;Activity Streams Dialog" vertex="1">
-          <mxGeometry height="70" width="200" x="325" y="340" as="geometry" />
+          <mxGeometry height="70" width="200" x="301" y="340" as="geometry" />
         </mxCell>
         <mxCell id="ix9wNZzuRQKxR3uQ5qOD-13" edge="1" parent="1" source="stop-old" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="close-browser" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="stop-old" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="Stop&lt;br&gt;(No new items)" vertex="1">
-          <mxGeometry height="60" width="120" x="600" y="720" as="geometry" />
+          <mxGeometry height="60" width="120" x="612" y="720" as="geometry" />
         </mxCell>
         <mxCell id="ix9wNZzuRQKxR3uQ5qOD-15" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="195" y="430" />
+              <mxPoint x="171" y="430" />
             </Array>
-            <mxPoint x="195" y="475" as="sourcePoint" />
-            <mxPoint x="425" y="430" as="targetPoint" />
+            <mxPoint x="171" y="475" as="sourcePoint" />
+            <mxPoint x="401" y="430" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="scroll-down" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Scroll down&lt;br&gt;in dialog" vertex="1">
-          <mxGeometry height="50" width="120" x="140" y="475" as="geometry" />
+          <mxGeometry height="50" width="120" x="116" y="475" as="geometry" />
         </mxCell>
         <mxCell id="ix9wNZzuRQKxR3uQ5qOD-10" edge="1" parent="1" source="click-stream" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="ix9wNZzuRQKxR3uQ5qOD-8" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="click-stream" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Click matched&lt;br&gt;stream" vertex="1">
-          <mxGeometry height="60" width="150" x="350" y="600" as="geometry" />
+          <mxGeometry height="60" width="150" x="326" y="600" as="geometry" />
         </mxCell>
         <mxCell id="ix9wNZzuRQKxR3uQ5qOD-18" edge="1" parent="1" source="nav-download" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="check-files" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="nav-download" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Navigate through&lt;br&gt;intermediate steps to&lt;br&gt;Download Dialog" vertex="1">
-          <mxGeometry height="70" width="200" x="325" y="846" as="geometry" />
+          <mxGeometry height="70" width="200" x="301" y="846" as="geometry" />
         </mxCell>
         <mxCell id="ix9wNZzuRQKxR3uQ5qOD-20" edge="1" parent="1" source="check-files" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" target="go-back" value="">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="580" y="1017" />
-              <mxPoint x="580" y="1267" />
+              <mxPoint x="556" y="1017" />
+              <mxPoint x="556" y="1267" />
             </Array>
-            <mxPoint x="580" y="1260" as="targetPoint" />
+            <mxPoint x="556" y="1260" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="ix9wNZzuRQKxR3uQ5qOD-21" connectable="0" parent="ix9wNZzuRQKxR3uQ5qOD-20" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="No" vertex="1">
@@ -58,28 +58,25 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="check-files" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="Any files match&lt;br&gt;filter condition?" vertex="1">
-          <mxGeometry height="100" width="200" x="325" y="967" as="geometry" />
+          <mxGeometry height="100" width="200" x="301" y="967" as="geometry" />
         </mxCell>
         <mxCell id="download-files" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Select matched files&lt;br&gt;(multiple selection)&lt;br&gt;and Download" vertex="1">
-          <mxGeometry height="70" width="175" x="337.5" y="1117" as="geometry" />
+          <mxGeometry height="70" width="175" x="313.5" y="1117" as="geometry" />
         </mxCell>
         <mxCell id="ix9wNZzuRQKxR3uQ5qOD-22" edge="1" parent="1" source="go-back" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="40" y="1267" />
-              <mxPoint x="40" y="430" />
+              <mxPoint x="86" y="1267" />
+              <mxPoint x="86" y="430" />
             </Array>
-            <mxPoint x="425" y="430" as="targetPoint" />
+            <mxPoint x="401" y="430" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="go-back" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Go back to&lt;br&gt;Activity Streams Dialog" vertex="1">
-          <mxGeometry height="60" width="150" x="350" y="1237" as="geometry" />
+          <mxGeometry height="60" width="150" x="326" y="1237" as="geometry" />
         </mxCell>
         <mxCell id="close-browser" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Close Browser" vertex="1">
-          <mxGeometry height="60" width="150" x="585" y="820" as="geometry" />
-        </mxCell>
-        <mxCell id="end" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="End" vertex="1">
-          <mxGeometry height="60" width="100" x="610" y="920" as="geometry" />
+          <mxGeometry height="60" width="150" x="597" y="820" as="geometry" />
         </mxCell>
         <mxCell id="arrow2" edge="1" parent="1" source="init-browser" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="login" value="">
           <mxGeometry height="50" relative="1" width="50" as="geometry" />
@@ -89,12 +86,12 @@
         </mxCell>
         <mxCell id="arrow4" edge="1" parent="1" source="navigate" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="ix9wNZzuRQKxR3uQ5qOD-1" value="">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="425.5" y="460" as="targetPoint" />
+            <mxPoint x="401.5" y="460" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="arrow10" edge="1" parent="1" source="ix9wNZzuRQKxR3uQ5qOD-1" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitDx=0;exitDy=0;" target="click-stream" value="Yes">
           <mxGeometry height="50" relative="1" width="50" as="geometry">
-            <mxPoint x="425" y="710" as="sourcePoint" />
+            <mxPoint x="401" y="710" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="arrow13" edge="1" parent="1" source="check-files" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="download-files" value="Yes">
@@ -103,8 +100,10 @@
         <mxCell id="arrow14" edge="1" parent="1" source="download-files" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="go-back" value="">
           <mxGeometry height="50" relative="1" width="50" as="geometry" />
         </mxCell>
-        <mxCell id="arrow18" edge="1" parent="1" source="close-browser" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="end" value="">
-          <mxGeometry height="50" relative="1" width="50" as="geometry" />
+        <mxCell id="arrow18" edge="1" parent="1" source="close-browser" style="endArrow=classic;html=1;exitX=0.5;exitY=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="xNyEtMjwzyin93jmg8J1-1" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="636" y="920" as="targetPoint" />
+          </mxGeometry>
         </mxCell>
         <mxCell id="ix9wNZzuRQKxR3uQ5qOD-9" edge="1" parent="1" source="ix9wNZzuRQKxR3uQ5qOD-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="scroll-down" value="">
           <mxGeometry relative="1" as="geometry" />
@@ -115,13 +114,13 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="ix9wNZzuRQKxR3uQ5qOD-1" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="Stream title&lt;br&gt;matches filter?" vertex="1">
-          <mxGeometry height="100" width="200" x="325" y="450" as="geometry" />
+          <mxGeometry height="100" width="200" x="301" y="450" as="geometry" />
         </mxCell>
         <mxCell id="ix9wNZzuRQKxR3uQ5qOD-4" edge="1" parent="1" source="ix9wNZzuRQKxR3uQ5qOD-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="init-browser" value="">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="ix9wNZzuRQKxR3uQ5qOD-3" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="Start" vertex="1">
-          <mxGeometry height="60" width="100" x="375" y="60" as="geometry" />
+          <mxGeometry height="60" width="100" x="351" y="60" as="geometry" />
         </mxCell>
         <mxCell id="ix9wNZzuRQKxR3uQ5qOD-12" edge="1" parent="1" source="ix9wNZzuRQKxR3uQ5qOD-8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="stop-old" value="">
           <mxGeometry relative="1" as="geometry" />
@@ -140,7 +139,22 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="ix9wNZzuRQKxR3uQ5qOD-8" parent="1" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="Stream date &amp;lt;&lt;br&gt;Last Sync Date?" vertex="1">
-          <mxGeometry height="100" width="200" x="325" y="700" as="geometry" />
+          <mxGeometry height="100" width="200" x="301" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="xNyEtMjwzyin93jmg8J1-3" edge="1" parent="1" source="xNyEtMjwzyin93jmg8J1-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="xNyEtMjwzyin93jmg8J1-2" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="xNyEtMjwzyin93jmg8J1-1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="Extract/Proceed downloaded files" vertex="1">
+          <mxGeometry height="60" width="150" x="597" y="930" as="geometry" />
+        </mxCell>
+        <mxCell id="xNyEtMjwzyin93jmg8J1-5" edge="1" parent="1" source="xNyEtMjwzyin93jmg8J1-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="xNyEtMjwzyin93jmg8J1-4" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="xNyEtMjwzyin93jmg8J1-2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="Upload to S3" vertex="1">
+          <mxGeometry height="60" width="150" x="597" y="1030" as="geometry" />
+        </mxCell>
+        <mxCell id="xNyEtMjwzyin93jmg8J1-4" parent="1" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" value="End" vertex="1">
+          <mxGeometry height="60" width="100" x="622" y="1134" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
