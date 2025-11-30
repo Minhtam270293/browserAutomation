@@ -74,7 +74,7 @@ npx ts-node main.ts
 
 ## Workflow Diagram
 
-![Application Workflow](img/00.flowchart.jpg)
+![Application Workflow](img/00.flowchart.svg)
 
 ## How It Works & screenshots
 
