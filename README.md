@@ -63,7 +63,7 @@ npx ts-node main.ts
 
 ## Workflow Diagram
 
-![Application Workflow](img/00.flowchart.png)
+![Application Workflow](img/00.flowchart.jpg)
 
 ## How It Works & screenshots
 
