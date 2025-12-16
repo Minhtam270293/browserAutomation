@@ -50,3 +50,5 @@ TinReference/
 *.tmp
 *.temp
 .cache/
+
+filepath.txt

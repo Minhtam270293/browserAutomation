@@ -31,7 +31,6 @@ export class BrowserDownloaderService implements IFileDownloader {
         config,
         lastSyncTime
       );
-      // For now, return an empty array
       return finalFileData;
     } catch (error) {
       const errorMessage =

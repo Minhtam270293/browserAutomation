@@ -106,7 +106,6 @@ export class MediaShuttleService {
 
       await this.login(page, config);
 
-      // TODO: perform Download
       finalFileData = await this.performDownload(page, config, lastSyncTime);
 
       this.logger.log("Media Shuttle download completed successfully");
@@ -129,9 +128,8 @@ export class MediaShuttleService {
     this.logger.log("Initializing browser...");
 
     this.browser = await chromium.launch({
-      headless: false,
-      // TODO: delete slowMo later
-      slowMo: 200, // Delay each action by 500ms (adjust as needed)
+      headless: true,
+
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
@@ -160,22 +158,16 @@ export class MediaShuttleService {
     this.logger.log("Attempting to login to Media Shuttle...");
 
     try {
-      // Wait for the page to load
       await page.waitForLoadState("domcontentloaded");
 
-      // Step 1: Fill in the email
       await page.locator("#login-form-email").fill(config.username);
 
-      // Click the "Next" button to proceed to password step
       await page.getByRole("button", { name: /next/i }).click();
 
-      // Wait for the password field to appear
       await page.waitForSelector("#login-form-password", { state: "visible" });
 
-      // Step 2: Fill in the password
       await page.locator("#login-form-password").fill(config.password);
 
-      // Click the login/submit button
       await page.getByRole("button", { name: /login|sign in|submit/i }).click();
 
       await page.waitForLoadState("networkidle");
@@ -251,7 +243,7 @@ export class MediaShuttleService {
     this.logger.log("Starting file download process...");
 
     const logFilterConditions = {
-      titlePrefix: "Downloaded",
+      titlePrefix: "Received",
       lastSync: lastSyncTime,
     };
 
@@ -267,7 +259,6 @@ export class MediaShuttleService {
     let downloadCount = 0;
 
     try {
-      // Click transferWithoutAppButton
       const transferWithoutAppButton = page.locator("#mst-no-software-btn");
       if (await transferWithoutAppButton.isVisible().catch(() => false)) {
         this.logger.log('Found "Transfer Without App" button, clicking it...');
@@ -386,7 +377,6 @@ export class MediaShuttleService {
                 visitedFiles
               );
 
-              // Push downloaded files to final collection
               if (downloadedFiles && downloadedFiles.length > 0) {
                 finalFileData.push(...downloadedFiles);
                 downloadCount++;
@@ -403,7 +393,6 @@ export class MediaShuttleService {
 
               const myTransfersButton = page.locator("#portal-activity-button");
 
-              // --- NEW
               try {
                 await myTransfersButton.waitFor({
                   state: "visible",
@@ -427,10 +416,9 @@ export class MediaShuttleService {
 
         if (shouldStopSearching) {
           this.logger.log("Stopping search - found item older than lastSync");
-          break; // Exit while loop
+          break; 
         }
 
-        // If we didn't find any matches in this scroll, scroll down
         this.logger.log(
           "No new matches found in this batch, scrolling down..."
         );
@@ -473,7 +461,6 @@ export class MediaShuttleService {
     try {
       let fileData: FileData[] = [];
 
-      // Click dropdown menu
       const dropDownMenuButton = page.locator(
         ".activity-icon--medium.pa-details__menu-icon.fas.fa-ellipsis-v"
       );
@@ -507,7 +494,6 @@ export class MediaShuttleService {
         await transferWithoutAppButton.click();
       }
 
-      // Wait for the file tree to load
       this.logger.log("Waiting for file list to load...");
       await page
         .waitForSelector(".jstree-anchor", {
@@ -518,10 +504,8 @@ export class MediaShuttleService {
           this.logger.warn("File list did not load within timeout");
         });
 
-      // Give a bit more time for all files to render
       await page.waitForTimeout(1000);
 
-      // Collect files to download
       this.logger.log("Collecting files in download page...");
       const fileItemsLocator = page.locator(".jstree-anchor");
       const fileItemsCount = await fileItemsLocator.count();
@@ -598,7 +582,6 @@ export class MediaShuttleService {
       await download.saveAs(downloadPath);
       this.logger.log(`File saved to: ${downloadPath}`);
 
-      // Check zip file and extract
       if (suggestedFilename.endsWith(".zip")) {
         this.logger.log("Detected zip file, extracting...");
 

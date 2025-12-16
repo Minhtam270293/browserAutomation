@@ -73,7 +73,7 @@ export class S3UploaderService implements IFileUploader {
         const errorMessage =
           error instanceof Error ? error.message : "Unknown error";
         this.logger.error(
-          `[SUM_GROUP] Failed to upload file ${file.fileName}: ${errorMessage}`
+          `Failed to upload file ${file.fileName}: ${errorMessage}`
         );
         results.push({
           fileName: file.fileName,
